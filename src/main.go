@@ -9,9 +9,9 @@ import (
 	"net/mail"
 	"os"
 
-	"SMTP/src/config"
-	"SMTP/src/model"
-	"SMTP/src/smtp"
+	"MailTrap/src/config"
+	"MailTrap/src/model"
+	"MailTrap/src/smtp"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )

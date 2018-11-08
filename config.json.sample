@@ -8,5 +8,5 @@
     "yann@mail.voidmx.net",
     "luax@mail.voidmx.net"
   ],
-  "database": "./db/email.db"
+  "database": "./db/mailtrap.db"
 }
