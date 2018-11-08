@@ -38,9 +38,3 @@ func (e *BasicEnvelope) Write(line []byte) error {
 func (e *BasicEnvelope) Close() error {
 	return nil
 }
-
-// MailAddress is defined by
-type MailAddress interface {
-	Email() string    // email address, as provided
-	Hostname() string // canonical hostname, lowercase
-}

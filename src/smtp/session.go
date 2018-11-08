@@ -74,16 +74,16 @@ func (s *Session) process() {
 		case "VRFY":
 			s.sendlinef("252 2.1.5 Cannot VRFY user")
 		case "MAIL":
-			arg := line.Arg() // "From:<foo@bar.com>"
-			match := mailFromRE.FindStringSubmatch(arg)
+			arg := line.Arg()
+			matches := mailFromRE.FindStringSubmatch(arg)
 
-			if match == nil {
+			if matches == nil {
 				log.Printf("invalid MAIL arg: %q", arg)
 				s.sendlinef("501 5.1.7 Bad sender address syntax")
 				continue
 			}
 
-			s.onMail(match[1])
+			s.onMail(matches[1])
 		case "RCPT":
 			s.onRcpt(line)
 		case "DATA":
@@ -139,7 +139,7 @@ func (s *Session) onMail(email string) {
 	}
 
 	s.Envelope = nil
-	envelope, err := onNewMail(s, addrString(email))
+	envelope, err := onNewMail(s, MailAddress(email))
 
 	if err != nil {
 		log.Printf("rejecting MAIL FROM %q: %v", email, err)
@@ -165,16 +165,16 @@ func (s *Session) onRcpt(line cmdLine) {
 		return
 	}
 
-	arg := line.Arg() // "To:<foo@bar.com>"
-	m := rcptToRE.FindStringSubmatch(arg)
+	arg := line.Arg()
+	matches := rcptToRE.FindStringSubmatch(arg)
 
-	if m == nil {
+	if matches == nil {
 		log.Printf("bad RCPT address: %q", arg)
 		s.sendlinef("501 5.1.7 Bad sender address syntax")
 		return
 	}
 
-	err := s.Envelope.AddRecipient(addrString(m[1]))
+	err := s.Envelope.AddRecipient(MailAddress(matches[1]))
 
 	if err != nil {
 		s.sendSMTPErrorOrLinef(err, "550 bad recipient")

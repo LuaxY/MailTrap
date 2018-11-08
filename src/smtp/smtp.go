@@ -16,22 +16,6 @@ var (
 	mailFromRE = regexp.MustCompile(`[Ff][Rr][Oo][Mm]:<(.*)>`)
 )
 
-type addrString string
-
-func (a addrString) Email() string {
-	return string(a)
-}
-
-func (a addrString) Hostname() string {
-	e := string(a)
-
-	if idx := strings.Index(e, "@"); idx != -1 {
-		return strings.ToLower(e[idx+1:])
-	}
-
-	return ""
-}
-
 type cmdLine string
 
 func (cl cmdLine) checkValid() error {
