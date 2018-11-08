@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/mail"
@@ -46,7 +44,7 @@ func (e *Envelop) OnFinish() {
 
 	header := m.Header
 
-	f, err := os.OpenFile("./logs/email.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	/*f, err := os.OpenFile("./logs/email.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
@@ -73,7 +71,7 @@ func (e *Envelop) OnFinish() {
 
 	fmt.Fprintln(f, "")
 	fmt.Fprintln(f, "---------------------------------------------------------------")
-	fmt.Fprintln(f, "")
+	fmt.Fprintln(f, "")*/
 
 	body, err := ioutil.ReadAll(m.Body)
 
@@ -97,7 +95,8 @@ func (e *Envelop) OnFinish() {
 	db.Create(&email)
 }
 
-func onNewMail(c smtp.Connection, from smtp.MailAddress) (smtp.Envelope, error) {
+func onNewMail(c *smtp.Session, from smtp.MailAddress) (smtp.Envelope, error) {
+	// TODO symplify session/connection Envelop/BasicEnvelop
 	return &Envelop{BasicEnvelope: &smtp.BasicEnvelope{From: from}}, nil
 }
 
