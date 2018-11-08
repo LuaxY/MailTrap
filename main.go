@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"log"
 	"net/mail"
@@ -22,9 +21,9 @@ type env struct {
 }
 
 func (e *env) AddRecipient(rcpt smtpd.MailAddress) error {
-	if !contains(cfg.AllowedAddress, rcpt.Email()) {
+	/*if !contains(cfg.AllowedAddress, rcpt.Email()) {
 		return errors.New("not allowed email")
-	}
+	}*/
 
 	return e.BasicEnvelope.AddRecipient(rcpt)
 }
