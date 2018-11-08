@@ -1,0 +1,11 @@
+{
+  "motd": "Dofus Mail Server",
+  "addr": ":25",
+  "hostname": "mail.voidmx.net",
+  "allowed_address": [
+    "admin@mail.voidmx.net",
+    "test@mail.voidmx.net",
+    "yann@mail.voidmx.net",
+    "luax@mail.voidmx.net"
+  ]
+}
