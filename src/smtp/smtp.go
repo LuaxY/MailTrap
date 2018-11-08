@@ -1,4 +1,4 @@
-package smtpd
+package smtp
 
 // TODO:
 //  -- send 421 to connected clients on graceful server shutdown (s3.8)
@@ -64,7 +64,9 @@ type Envelope interface {
 }
 
 type BasicEnvelope struct {
-	Rcpts []MailAddress
+	From   MailAddress
+	Rcpts  []MailAddress
+	Buffer []byte
 }
 
 func (e *BasicEnvelope) AddRecipient(rcpt MailAddress) error {

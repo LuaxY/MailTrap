@@ -14,6 +14,7 @@ type Config struct {
 	Addr           string   `json:"addr"`
 	Hostname       string   `json:"hostname"`
 	AllowedAddress []string `json:"allowed_address"`
+	Database       string   ` json:"database"`
 }
 
 func LoadConfiguration() Config {
