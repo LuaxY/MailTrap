@@ -14,6 +14,8 @@ import (
 var (
 	rcptToRE   = regexp.MustCompile(`[Tt][Oo]:<(.+)>`)
 	mailFromRE = regexp.MustCompile(`[Ff][Rr][Oo][Mm]:<(.*)>`)
+
+	fromToRE = regexp.MustCompile(`(?m)["“”']{0,1}(.*)["“”']{0,1}[ ]{0,1}[<](.*)@(.*)[>]`)
 )
 
 type cmdLine string
