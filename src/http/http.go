@@ -18,6 +18,7 @@ func Start() {
 
 	e.GET("/mails", getList)
 	e.GET("/mails/:id", getMail)
+	e.GET("/mails/:id/view", getMailView)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }
@@ -68,12 +69,25 @@ func getMail(c echo.Context) error {
 	database.DB.First(&email, id)
 
 	return c.Render(http.StatusOK, "mail.html", Mail{
+		ID:      email.ID,
 		Date:    html.EscapeString(email.Date),
 		From:    html.EscapeString(email.EmailFrom),
 		To:      html.EscapeString(email.EmailTo),
 		Subject: html.EscapeString(email.Subject),
 		Body:    email.Body,
 	})
+}
+
+func getMailView(c echo.Context) error {
+	reloadTemplates(c.Echo())
+
+	id := c.Param("id")
+
+	var email model.Email
+
+	database.DB.First(&email, id)
+
+	return c.HTML(http.StatusOK, email.Body)
 }
 
 func reloadTemplates(e *echo.Echo) {
