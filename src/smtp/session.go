@@ -13,7 +13,7 @@ type Session struct {
 	From      string
 	To        []string
 	HelloHost string
-	Envelope  Envelope
+	Envelope  *BasicEnvelope
 
 	server *Server
 	peer   net.Conn
@@ -32,14 +32,14 @@ func (s *Session) Close() error {
 func (s *Session) process() {
 	defer s.peer.Close()
 
-	if onNewConnecion := s.server.OnNewConnection; onNewConnecion != nil {
+	/*if onNewConnecion := s.server.OnNewConnection; onNewConnecion != nil {
 		if err := onNewConnecion(s); err != nil {
-			s.sendSMTPErrorOrLinef(err, "554 connection rejected")
+			s.sendError(err, "554 connection rejected")
 			return
 		}
-	}
+	}*/
 
-	s.sendf("220 %s ESMTP %s\r\n", s.server.hostname(), s.server.Motd)
+	s.send("220 %s ESMTP %s", s.server.Hostname, s.server.Motd)
 
 	for {
 		if s.server.ReadTimeout != 0 {
@@ -49,37 +49,37 @@ func (s *Session) process() {
 		slice, err := s.reader.ReadSlice('\n')
 
 		if err != nil {
-			s.errorf("read error: %v", err)
+			s.error(err)
 			return
 		}
 
 		line := cmdLine(string(slice))
 
 		if err := line.checkValid(); err != nil {
-			s.sendlinef("500 %v", err)
+			s.send("500 %v", err)
 			continue
 		}
 
-		switch line.Verb() {
+		switch line.verb() {
 		case "HELO", "EHLO":
-			s.onHelo(line.Verb(), line.Arg())
+			s.onHelo(line.verb(), line.arg())
 		case "QUIT":
-			s.sendlinef("221 2.0.0 Bye")
+			s.send("221 2.0.0 Bye")
 			return
 		case "RSET":
 			s.Envelope = nil
-			s.sendlinef("250 2.0.0 OK")
+			s.send("250 2.0.0 OK")
 		case "NOOP":
-			s.sendlinef("250 2.0.0 OK")
+			s.send("250 2.0.0 OK")
 		case "VRFY":
-			s.sendlinef("252 2.1.5 Cannot VRFY user")
+			s.send("252 2.1.5 Cannot VRFY user")
 		case "MAIL":
-			arg := line.Arg()
+			arg := line.arg()
 			matches := mailFromRE.FindStringSubmatch(arg)
 
 			if matches == nil {
 				log.Printf("invalid MAIL arg: %q", arg)
-				s.sendlinef("501 5.1.7 Bad sender address syntax")
+				s.send("501 5.1.7 Bad sender address syntax")
 				continue
 			}
 
@@ -89,8 +89,8 @@ func (s *Session) process() {
 		case "DATA":
 			s.onData()
 		default:
-			log.Printf("Client: %q, verhb: %q", line, line.Verb())
-			s.sendlinef("502 5.5.2 Error: command not recognized")
+			log.Printf("Client: %q, verhb: %q", line, line.verb())
+			s.send("502 5.5.2 Error: command not recognized")
 		}
 	}
 }
@@ -98,7 +98,7 @@ func (s *Session) process() {
 func (s *Session) onHelo(greeting, host string) {
 	s.HelloHost = host
 
-	fmt.Fprintf(s.writer, "250-%s\r\n", s.server.hostname())
+	fmt.Fprintf(s.writer, "250-%s\r\n", s.server.Hostname)
 
 	var extensions []string
 
@@ -126,32 +126,24 @@ func (s *Session) onMail(email string) {
 	// code 555.
 
 	if s.Envelope != nil {
-		s.sendlinef("503 5.5.1 Error: nested MAIL command")
+		s.send("503 5.5.1 Error: nested MAIL command")
 		return
 	}
 
-	onNewMail := s.server.OnNewMail
+	// Check email from here
 
-	if onNewMail == nil {
-		log.Printf("smtp: Server.OnNewMail is nil; rejecting MAIL FROM")
-		s.sendf("451 Server.OnNewMail not configured\r\n")
-		return
-	}
-
-	s.Envelope = nil
-	envelope, err := onNewMail(s, MailAddress(email))
-
-	if err != nil {
+	/*if err != nil {
 		log.Printf("rejecting MAIL FROM %q: %v", email, err)
-		s.sendf("451 denied\r\n")
+		s.send("451 denied")
 		s.writer.Flush()
 		time.Sleep(100 * time.Millisecond)
 		s.peer.Close()
 		return
-	}
+	}*/
 
-	s.Envelope = envelope
-	s.sendlinef("250 2.1.0 Ok")
+	s.Envelope = &BasicEnvelope{From: MailAddress(email)}
+
+	s.send("250 2.1.0 Ok")
 }
 
 func (s *Session) onRcpt(line cmdLine) {
@@ -161,109 +153,90 @@ func (s *Session) onRcpt(line cmdLine) {
 	// code 555.
 
 	if s.Envelope == nil {
-		s.sendlinef("503 5.5.1 Error: need MAIL command")
+		s.send("503 5.5.1 Error: need MAIL command")
 		return
 	}
 
-	arg := line.Arg()
+	arg := line.arg()
 	matches := rcptToRE.FindStringSubmatch(arg)
 
 	if matches == nil {
 		log.Printf("bad RCPT address: %q", arg)
-		s.sendlinef("501 5.1.7 Bad sender address syntax")
+		s.send("501 5.1.7 Bad sender address syntax")
 		return
 	}
 
 	err := s.Envelope.AddRecipient(MailAddress(matches[1]))
 
 	if err != nil {
-		s.sendSMTPErrorOrLinef(err, "550 bad recipient")
+		s.error(SMTPError("550 bad recipient"))
 		return
 	}
 
-	s.sendlinef("250 2.1.0 Ok")
+	s.send("250 2.1.0 Ok")
 }
 
 func (s *Session) onData() {
 	if s.Envelope == nil {
-		s.sendlinef("503 5.5.1 Error: need RCPT command")
+		s.send("503 5.5.1 Error: need RCPT command")
 		return
 	}
 
 	if err := s.Envelope.BeginData(); err != nil {
-		s.handleError(err)
+		s.error(err)
 		return
 	}
 
-	s.sendlinef("354 Go ahead")
+	s.send("354 Go ahead")
 
 	for {
-		sl, err := s.reader.ReadSlice('\n')
+		data, err := s.reader.ReadSlice('\n')
 
 		if err != nil {
-			s.errorf("read error: %v", err)
+			s.error(err)
 			return
 		}
 
-		if bytes.Equal(sl, []byte(".\r\n")) {
+		if bytes.Equal(data, []byte(".\r\n")) {
 			break
 		}
 
-		if sl[0] == '.' {
-			sl = sl[1:]
+		if data[0] == '.' {
+			data = data[1:]
 		}
 
-		err = s.Envelope.Write(sl)
+		err = s.Envelope.Write(data)
 
 		if err != nil {
-			s.sendSMTPErrorOrLinef(err, "550 ??? failed")
+			s.error(SMTPError("550 ??? failed"))
 			return
 		}
 	}
 
-	if err := s.Envelope.Close(); err != nil {
-		s.handleError(err)
+	if err := s.Envelope.EndData(); err != nil {
+		s.error(err)
 		return
 	}
 
-	go s.Envelope.OnFinish()
+	go s.server.OnNewMail(s, s.Envelope)
 
-	s.sendlinef("250 2.0.0 Ok: queued")
-	s.Envelope = nil
+	s.send("250 2.0.0 Ok: queued")
 }
 
-func (s *Session) handleError(err error) {
-	if se, ok := err.(SMTPError); ok {
-		s.sendlinef("%s", se)
-		return
-	}
-
-	log.Printf("Error: %s", err)
-	s.Envelope = nil
-}
-
-func (s *Session) errorf(format string, args ...interface{}) {
-	log.Printf("Client error: "+format, args...)
-}
-
-func (s *Session) sendf(format string, args ...interface{}) {
+func (s *Session) send(format string, args ...interface{}) {
 	if s.server.WriteTimeout != 0 {
 		s.peer.SetWriteDeadline(time.Now().Add(s.server.WriteTimeout))
 	}
 
-	fmt.Fprintf(s.writer, format, args...)
+	fmt.Fprintf(s.writer, format+"\r\n", args...)
 	s.writer.Flush()
 }
 
-func (s *Session) sendlinef(format string, args ...interface{}) {
-	s.sendf(format+"\r\n", args...)
-}
-
-func (s *Session) sendSMTPErrorOrLinef(err error, format string, args ...interface{}) {
+func (s *Session) error(err error) {
 	if se, ok := err.(SMTPError); ok {
-		s.sendlinef("%s", se.Error())
+		s.send("%s", se)
 		return
 	}
 
-	s.sendlinef(format, args...)
+	log.Printf("Error: %s", err)
 }

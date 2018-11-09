@@ -7,7 +7,7 @@ import (
 type Email struct {
 	gorm.Model
 	Remote    string
-	IP        int
+	IP        uint32
 	From      string
 	To        string
 	Date      string

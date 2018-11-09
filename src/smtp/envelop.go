@@ -1,24 +1,22 @@
 package smtp
 
 import (
-	"log"
+	"bytes"
+	"io/ioutil"
+	"net/mail"
 )
-
-type Envelope interface {
-	AddRecipient(rcpt MailAddress) error
-	BeginData() error
-	Write(line []byte) error
-	Close() error
-	OnFinish()
-}
 
 type BasicEnvelope struct {
 	From   MailAddress
 	Rcpts  []MailAddress
-	Buffer []byte
+	Header mail.Header
+	Body   []byte
+
+	buffer []byte
 }
 
 func (e *BasicEnvelope) AddRecipient(rcpt MailAddress) error {
+	// Check recipient here
 	e.Rcpts = append(e.Rcpts, rcpt)
 	return nil
 }
@@ -27,14 +25,27 @@ func (e *BasicEnvelope) BeginData() error {
 	if len(e.Rcpts) == 0 {
 		return SMTPError("554 5.5.1 Error: no valid recipients")
 	}
+
 	return nil
 }
 
 func (e *BasicEnvelope) Write(line []byte) error {
-	log.Printf("Line: %q", string(line))
+	e.buffer = append(e.buffer, line...)
 	return nil
 }
 
-func (e *BasicEnvelope) Close() error {
-	return nil
+func (e *BasicEnvelope) EndData() error {
+	var err error
+
+	reader := bytes.NewReader(e.buffer)
+	email, err := mail.ReadMessage(reader)
+
+	if err != nil {
+		return err
+	}
+
+	e.Header = email.Header
+	e.Body, err = ioutil.ReadAll(email.Body)
+
+	return err
 }

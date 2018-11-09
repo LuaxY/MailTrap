@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{.Subject}}</title>
+    <style>
+        * {
+            font-family: Verdana;
+        }
+        table {
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        td:first-child {
+            width: 100px;
+        }
+
+        .body, table {
+            width: 1080px;
+        }
+    </style>
+</head>
+<body>
+<table>
+    <tr>
+        <td><b>Date</b></td>
+        <td>{{.Date}}</td>
+    </tr>
+    <tr>
+        <td><b>From</b></td>
+        <td>{{.From}}</td>
+    </tr>
+    <tr>
+        <td><b>To</b></td>
+        <td>{{.To}}</td>
+    </tr>
+    <tr>
+        <td><b>Subject</b></td>
+        <td>{{.Subject}}</td>
+    </tr>
+
+    <tr>
+        <td colspan="2" class="body">{{.Body}}</td>
+    </tr>
+</table>
+
+</body>
+</html>

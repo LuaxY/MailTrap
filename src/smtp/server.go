@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"log"
 	"net"
-	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -19,13 +17,7 @@ type Server struct {
 
 	PlainAuth bool // advertise plain auth (assumes you're on SSL)
 
-	// OnNewConnection, if non-nil, is called on new connections.
-	// If it returns non-nil, the connection is closed.
-	OnNewConnection func(c *Session) error
-
-	// OnNewMail must be defined and is called when a new message beings.
-	// (when a MAIL FROM line arrives)
-	OnNewMail func(c *Session, from MailAddress) (Envelope, error)
+	OnNewMail func(session *Session, email *BasicEnvelope)
 }
 
 func (srv *Server) ListenAndServe() error {
@@ -80,18 +72,4 @@ func (srv *Server) newSession(conn net.Conn) (s *Session, err error) {
 	}
 
 	return
-}
-
-func (srv *Server) hostname() string {
-	if srv.Hostname != "" {
-		return srv.Hostname
-	}
-
-	out, err := exec.Command("hostname").Output()
-
-	if err != nil {
-		return ""
-	}
-
-	return strings.TrimSpace(string(out))
 }
