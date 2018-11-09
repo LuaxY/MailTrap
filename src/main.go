@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"log"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"MailTrap/src/http"
 	"MailTrap/src/model"
 	"MailTrap/src/smtp"
+	"github.com/jhillyerd/enmime"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
@@ -58,16 +60,21 @@ func onNewMail(session *smtp.Session, mail *smtp.BasicEnvelope) {
 		return
 	}
 
+	reader := bytes.NewReader(mail.Raw)
+	envelope, err := enmime.ReadEnvelope(reader)
+
+	// TODO error
+
 	email := model.Email{
 		Remote:    session.HelloHost,
 		IP:        ip2int(IPs[0]),
 		From:      mail.From.Email(),
 		To:        mail.Rcpts[0].Email(),
-		Date:      mail.Header.Get("Date"),
-		EmailFrom: mail.Header.Get("From"),
-		EmailTo:   mail.Header.Get("To"),
-		Subject:   mail.Header.Get("Subject"),
-		Body:      string(mail.Body),
+		Date:      envelope.GetHeader("Date"),
+		EmailFrom: envelope.GetHeader("From"),
+		EmailTo:   envelope.GetHeader("To"),
+		Subject:   envelope.GetHeader("Subject"),
+		Raw:       string(mail.Raw),
 	}
 
 	database.DB.Create(&email)

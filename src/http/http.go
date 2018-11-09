@@ -4,10 +4,12 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"strings"
 	"text/template"
 
 	"MailTrap/src/database"
 	"MailTrap/src/model"
+	"github.com/jhillyerd/enmime"
 	"github.com/labstack/echo"
 )
 
@@ -29,7 +31,6 @@ type Mail struct {
 	From    string
 	To      string
 	Subject string
-	Body    string
 	Remote  string
 }
 
@@ -74,7 +75,6 @@ func getMail(c echo.Context) error {
 		From:    html.EscapeString(email.EmailFrom),
 		To:      html.EscapeString(email.EmailTo),
 		Subject: html.EscapeString(email.Subject),
-		Body:    email.Body,
 	})
 }
 
@@ -87,7 +87,22 @@ func getMailView(c echo.Context) error {
 
 	database.DB.First(&email, id)
 
-	return c.HTML(http.StatusOK, email.Body)
+	reader := strings.NewReader(email.Raw)
+	envelope, err := enmime.ReadEnvelope(reader)
+
+	if err != nil {
+		return c.String(http.StatusOK, email.Raw)
+	}
+
+	if len(envelope.HTML) > 0 {
+		return c.HTML(http.StatusOK, envelope.HTML)
+	}
+
+	if len(envelope.Text) > 0 {
+		return c.String(http.StatusOK, envelope.Text)
+	}
+
+	return c.String(http.StatusOK, email.Raw)
 }
 
 func reloadTemplates(e *echo.Echo) {

@@ -14,5 +14,5 @@ type Email struct {
 	EmailFrom string
 	EmailTo   string
 	Subject   string
-	Body      string
+	Raw       string
 }

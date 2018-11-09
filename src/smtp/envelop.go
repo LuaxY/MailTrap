@@ -11,6 +11,7 @@ type BasicEnvelope struct {
 	Rcpts  []MailAddress
 	Header mail.Header
 	Body   []byte
+	Raw    []byte
 
 	buffer []byte
 }
@@ -36,6 +37,8 @@ func (e *BasicEnvelope) Write(line []byte) error {
 
 func (e *BasicEnvelope) EndData() error {
 	var err error
+
+	e.Raw = e.buffer
 
 	reader := bytes.NewReader(e.buffer)
 	email, err := mail.ReadMessage(reader)
