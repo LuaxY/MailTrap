@@ -1,20 +1,26 @@
 package http
 
 import (
+	"MailTrap/internal/config"
 	"html"
 	"io"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"text/template"
 
-	"MailTrap/src/database"
-	"MailTrap/src/model"
+	"MailTrap/internal/database"
+	"MailTrap/internal/model"
 	"github.com/jhillyerd/enmime"
 	"github.com/labstack/echo"
 )
 
+var cfg = config.Get()
+
 func Start() {
 	e := echo.New()
+	e.HideBanner = true
 
 	reloadTemplates(e)
 
@@ -22,7 +28,7 @@ func Start() {
 	e.GET("/mails/:id", getMail)
 	e.GET("/mails/:id/view", getMailView)
 
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(cfg.HTTP))
 }
 
 type Mail struct {
@@ -37,10 +43,13 @@ type Mail struct {
 func getList(c echo.Context) error {
 	reloadTemplates(c.Echo())
 
+	pageStr := c.QueryParam("page")
+	page, _ := strconv.Atoi(pageStr)
+
 	var list []model.Email
 	var mails []Mail
 
-	database.DB.Find(&list)
+	database.DB.Limit(100).Offset(page * 100).Order("id desc").Find(&list)
 
 	for _, mail := range list {
 		mails = append(mails, Mail{
@@ -53,10 +62,26 @@ func getList(c echo.Context) error {
 		})
 	}
 
+	var count int
+	database.DB.Model(&model.Email{}).Count(&count)
+
+	nb := math.Ceil(float64(count) / 100)
+	var pages []int
+
+	for i := 0; i < int(nb); i++ {
+		pages = append(pages, i)
+	}
+
 	return c.Render(http.StatusOK, "list.html", struct {
 		Mails []Mail
+		Count int
+		Page  int
+		Pages []int
 	}{
 		Mails: mails,
+		Count: count,
+		Page:  page,
+		Pages: pages,
 	})
 }
 

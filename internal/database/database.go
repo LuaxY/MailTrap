@@ -3,8 +3,8 @@ package database
 import (
 	"log"
 
-	"MailTrap/src/config"
-	"MailTrap/src/model"
+	"MailTrap/internal/config"
+	"MailTrap/internal/model"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )

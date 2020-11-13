@@ -1,12 +1,7 @@
 {
-  "motd": "Dofus Mail Server",
-  "addr": ":25",
+  "motd": "Mail Server",
+  "smto": ":25",
+  "http": ":80",
   "hostname": "mail.voidmx.net",
-  "allowed_address": [
-    "admin@mail.voidmx.net",
-    "test@mail.voidmx.net",
-    "yann@mail.voidmx.net",
-    "luax@mail.voidmx.net"
-  ],
   "database": "./db/mailtrap.db"
 }

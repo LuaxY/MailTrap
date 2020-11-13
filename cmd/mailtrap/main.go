@@ -1,44 +1,32 @@
 package main
 
 import (
+	"MailTrap/internal/config"
+	"MailTrap/internal/database"
+	"MailTrap/internal/http"
+	"MailTrap/internal/model"
+	"MailTrap/internal/smtp"
 	"bytes"
 	"encoding/binary"
-	"log"
-	"net"
-	"os"
-
-	"MailTrap/src/config"
-	"MailTrap/src/database"
-	"MailTrap/src/http"
-	"MailTrap/src/model"
-	"MailTrap/src/smtp"
 	"github.com/jhillyerd/enmime"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"log"
+	"net"
 )
 
 var cfg = config.Get()
 
 func main() {
-	f, err := os.OpenFile("./logs/smtp.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-
-	defer f.Close()
-
-	//log.SetOutput(f)
-
 	go http.Start()
 
 	s := &smtp.Server{
-		Motd:      cfg.Motd,
-		Addr:      cfg.Addr,
+		Motd:      cfg.MOTD,
+		Addr:      cfg.SMTP,
 		Hostname:  cfg.Hostname,
 		OnNewMail: onNewMail,
 	}
 
-	err = s.ListenAndServe()
+	err := s.ListenAndServe()
 
 	if err != nil {
 		log.Fatalf("ListenAndServe: %v", err)

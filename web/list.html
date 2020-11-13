@@ -23,6 +23,10 @@
     </style>
 </head>
 <body>
+{{range $index, $element := .Pages}}
+<a href="/mails?page={{$element}}">{{$element}}</a>
+{{end}}
+<br><br>
 <table>
     <tr>
         <th>#</th>
@@ -43,5 +47,9 @@
     </tr>
 {{end}}
 </table>
+<br>
+{{range $index, $element := .Pages}}
+<a href="/mails?page={{$element}}">{{$element}}</a>
+{{end}}
 </body>
 </html>

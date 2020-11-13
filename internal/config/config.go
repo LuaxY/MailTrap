@@ -10,8 +10,9 @@ import (
 var cfg = LoadConfiguration()
 
 type Config struct {
-	Motd           string   `json:"motd"`
-	Addr           string   `json:"addr"`
+	MOTD           string   `json:"motd"`
+	SMTP           string   `json:"smtp"`
+	HTTP           string   `json:"http"`
 	Hostname       string   `json:"hostname"`
 	AllowedAddress []string `json:"allowed_address"`
 	Database       string   ` json:"database"`
