@@ -44,5 +44,5 @@ jobs:
           script: |
             docker login -u nologin -p ${{ secrets.SCALEWAY_DOCKER_KEY }} ${{ env.DOCKER_REGISTRY }}
             docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
-            docker rm -f stealth
+            docker rm -f mailtrap
             docker run -d --name mailtrap --restart always -v /root/config.json:/mailtrap/config.json -v /root/db/mailtrap.db:/mailtrap/db/mailtrap.db -p 25:25 -p 80:80 ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
