@@ -1,0 +1,48 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_REGISTRY: rg.fr-par.scw.cloud/voidmx
+      DOCKER_IMAGE: mailtrap
+      DOCKER_TAG: ${{ github.sha }}
+      DOCKER_TARGET_PLATFORM: linux/arm/v7
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up docker buildx
+        uses: docker/setup-buildx-action@v1
+        id: buildx
+        with:
+          install: true
+      - name: Docker login Scaleway
+        run: docker login -u nologin -p ${{ secrets.SCALEWAY_DOCKER_KEY }} ${{ env.DOCKER_REGISTRY }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ env.DOCKER_TARGET_PLATFORM }}
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+      - name: Deploy on prod server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker login -u nologin -p ${{ secrets.SCALEWAY_DOCKER_KEY }} ${{ env.DOCKER_REGISTRY }}
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            docker rm -f stealth
+            docker run -d --name mailtrap --restart always -v $PWD/config.json:/mailtrap/config.json -v $PWD/db/mailtrap.db:/mailtrap/db/mailtrap.db -p 25:25 -p 80:80 ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
